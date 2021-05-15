@@ -11,3 +11,5 @@ AllAndroidPatchFiles*
 UnityPackageManager
 *.apk
 AndroidKeystore
+Logs
+.vscode

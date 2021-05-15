@@ -11,8 +11,8 @@ public class AndroidBuilder : MonoBehaviour {
 
     //-----------------------------------------  config ---------------------------------
     //set SDK/NDK/JDK via Unity Menu Path: Edit -> Preferences... -> External Tools -> Android
-    public static readonly string ANDROID_BUILD_TOOLS_VERSION = "26.0.2";
-    public static readonly string ANDROID_PLATFORM = "android-23";
+    public static readonly string ANDROID_BUILD_TOOLS_VERSION = "28.0.3";
+    public static readonly string ANDROID_PLATFORM = "android-29";
 
     //-----------------------------------------------------------------------------------
     public static readonly string PROJECT_DIR = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
@@ -131,9 +131,7 @@ public class AndroidBuilder : MonoBehaviour {
         EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
         PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.stripEngineCode = false;
-#if UNITY_2018 || UNITY_2019
-        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.X86 | AndroidArchitecture.ARM64;
-#endif
+        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.All;
 
         //export project
         string error_msg = string.Empty;
@@ -143,11 +141,7 @@ public class AndroidBuilder : MonoBehaviour {
         Directory.CreateDirectory(ANDROID_EXPORT_PATH);
         try
         {
-#if UNITY_2018 || UNITY_2019
             error_msg = BuildPipeline.BuildPlayer(levels, ANDROID_EXPORT_PATH, EditorUserBuildSettings.activeBuildTarget, options).summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? string.Empty : "Failed to export project!";
-#else
-            error_msg = BuildPipeline.BuildPlayer(levels, ANDROID_EXPORT_PATH, EditorUserBuildSettings.activeBuildTarget, options);
-#endif
         }
         catch (Exception e)
         {
