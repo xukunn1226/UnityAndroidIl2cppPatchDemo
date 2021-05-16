@@ -17,7 +17,7 @@ public class AndroidBuilder : MonoBehaviour {
     //-----------------------------------------------------------------------------------
     public static readonly string PROJECT_DIR = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
     public static readonly string ANDROID_EXPORT_PATH = PROJECT_DIR + "/AndroidGradleProject_v1.0";
-    public static string ANDROID_PROJECT_PATH { get { return ANDROID_EXPORT_PATH + "/" + PlayerSettings.productName; } }
+    public static string ANDROID_PROJECT_PATH { get { return ANDROID_EXPORT_PATH + "/" + "unityLibrary"/*PlayerSettings.productName*/; } }
     public static string ANDROID_MANIFEST_PATH = ANDROID_PROJECT_PATH + "/src/main/";
     public static string JAVA_SRC_PATH = ANDROID_PROJECT_PATH + "/src/main/java/";
     public static string JAR_LIB_PATH = ANDROID_PROJECT_PATH + "/libs/";
@@ -72,6 +72,7 @@ public class AndroidBuilder : MonoBehaviour {
     public static bool ValidateConfig()
     {
         string sdkPath = EditorPrefs.GetString("AndroidSdkRoot", "");
+        sdkPath = @"D:\program files\2020.3.8f1c1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK";
         if (string.IsNullOrEmpty(sdkPath))
         {
             Debug.LogError("sdk path is empty! please config via menu path:Edit/Preference->External tools.");
@@ -79,6 +80,7 @@ public class AndroidBuilder : MonoBehaviour {
         }
 
         string jdkPath = EditorPrefs.GetString("JdkPath", "");
+        jdkPath = @"D:\program files\2020.3.8f1c1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK";
         if (string.IsNullOrEmpty(jdkPath))
         {
             Debug.LogError("jdk path is empty! please config via menu path:Edit/Preference->External tools.");
@@ -86,6 +88,7 @@ public class AndroidBuilder : MonoBehaviour {
         }
 
         string ndkPath = EditorPrefs.GetString("AndroidNdkRootR16b", "");
+        ndkPath = @"D:\program files\2020.3.8f1c1\Editor\Data\PlaybackEngines\AndroidPlayer\NDK";
         if (string.IsNullOrEmpty(ndkPath))
         {
             ndkPath = EditorPrefs.GetString("AndroidNdkRoot", "");
@@ -182,9 +185,9 @@ public class AndroidBuilder : MonoBehaviour {
             @"import android.view.WindowManager;
 import io.github.noodle1983.Boostrap;");
 
-        allJavaText = allJavaText.Replace("mUnityPlayer = new UnityPlayer(this);",
+        allJavaText = allJavaText.Replace("mUnityPlayer = new UnityPlayer(this, this);",
             @"Boostrap.InitNativeLibBeforeUnityPlay(getApplication().getApplicationContext().getFilesDir().getPath());
-        mUnityPlayer = new UnityPlayer(this);");
+         mUnityPlayer = new UnityPlayer(this, this);");
         File.WriteAllText(javaEntranceFile, allJavaText);
 
         // generate removal test file
@@ -264,7 +267,9 @@ import io.github.noodle1983.Boostrap;");
     public static bool GenerateBuildScripts()
     {
         string sdkPath = EditorPrefs.GetString("AndroidSdkRoot", "");
-        string jdkPath = EditorPrefs.GetString("JdkPath", ""); ;
+        sdkPath = @"D:\program files\2020.3.8f1c1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK";
+        string jdkPath = EditorPrefs.GetString("JdkPath", "");
+        jdkPath = @"D:\program files\2020.3.8f1c1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK";
         if (string.IsNullOrEmpty(sdkPath) || string.IsNullOrEmpty(jdkPath))
         {
             Debug.LogError("sdk/jdk path is empty! please config via menu path:Edit/Preference->External tools.");
@@ -311,13 +316,9 @@ import io.github.noodle1983.Boostrap;");
         if (Directory.Exists(outputLibPath)) { FileUtil.DeleteFileOrDirectory(outputLibPath); }
         Directory.CreateDirectory(outputLibPath);
         FileUtil.ReplaceDirectory(SO_LIB_PATH + "/armeabi-v7a", outputLibPath + "/armeabi-v7a");
-        FileUtil.ReplaceDirectory(SO_LIB_PATH + "/x86", outputLibPath + "/x86");
-#if UNITY_2018 || UNITY_2019
         FileUtil.ReplaceDirectory(SO_LIB_PATH + "/arm64-v8a", outputLibPath + "/arm64-v8a");
         FileUtil.DeleteFileOrDirectory(outputLibPath + "/arm64-v8a/Data");
-#endif
         FileUtil.DeleteFileOrDirectory(outputLibPath + "/armeabi-v7a/Data");
-        FileUtil.DeleteFileOrDirectory(outputLibPath + "/x86/Data");
         var debug_files = Directory.GetFiles(outputLibPath, "*.*", SearchOption.AllDirectories).Where(s => s.EndsWith(".debug") || s.EndsWith(".map") || s.EndsWith(".sym"));
         foreach (string file in debug_files) { File.Delete(file); }
 
@@ -337,23 +338,23 @@ import io.github.noodle1983.Boostrap;");
         string zipalignParam = " -f 4 " + unaligned_apk_path + " " + alignedApkPath;
         allCmd.AppendFormat("call \"{0}\" {1}\n\n", zipalign, zipalignParam);
 
-        //sign
-        string keystoreDir = PROJECT_DIR + "/AndroidKeystore";
-        if (!Directory.Exists(keystoreDir)) { Directory.CreateDirectory(keystoreDir); }
-        string keystoreFile = keystoreDir + "/test.keystore";
-        if (!File.Exists(keystoreFile))
-        {
-            string keytoolPath = jdkPath + "/bin/keytool.exe";
-            string genKeyParam = "-genkey -alias test -validity 1000 -keyalg RSA -keystore " + keystoreFile + " -dname \"CN = Test, OU = Test, O = Test, L = Test, S = Test, C = Test\" -keysize 4096 -storepass testtest -keypass testtest";
-            if (!Exec(keytoolPath, genKeyParam))
-            {
-                Debug.LogError("exec failed:" + keytoolPath + " " + genKeyParam);
-                return false;
-            }
-        }
-        string apksignerPath = buildToolPath + "/apksigner.bat";
-        string signParam = " sign --ks " + keystoreFile + " --ks-pass pass:testtest --key-pass pass:testtest " + alignedApkPath;
-        allCmd.AppendFormat("call \"{0}\" {1}\n\n", apksignerPath, signParam);
+        // //sign
+        // string keystoreDir = PROJECT_DIR + "/AndroidKeystore";
+        // if (!Directory.Exists(keystoreDir)) { Directory.CreateDirectory(keystoreDir); }
+        // string keystoreFile = keystoreDir + "/test.keystore";
+        // if (!File.Exists(keystoreFile))
+        // {
+        //     string keytoolPath = jdkPath + "/bin/keytool.exe";
+        //     string genKeyParam = "-genkey -alias test -validity 1000 -keyalg RSA -keystore " + keystoreFile + " -dname \"CN = Test, OU = Test, O = Test, L = Test, S = Test, C = Test\" -keysize 4096 -storepass testtest -keypass testtest";
+        //     if (!Exec(keytoolPath, genKeyParam))
+        //     {
+        //         Debug.LogError("exec failed:" + keytoolPath + " " + genKeyParam);
+        //         return false;
+        //     }
+        // }
+        // string apksignerPath = buildToolPath + "/apksigner.bat";
+        // string signParam = " sign --ks " + keystoreFile + " --ks-pass pass:testtest --key-pass pass:testtest " + alignedApkPath;
+        // allCmd.AppendFormat("call \"{0}\" {1}\n\n", apksignerPath, signParam);
 
         //del tmp apk
         allCmd.AppendFormat("del /f /a /Q {0}\n\n", unaligned_apk_path.Replace("/", "\\"));
